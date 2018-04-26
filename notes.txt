@@ -1,0 +1,13 @@
+Packages Required:
+* epel-release
+* zip* unzip
+* mariadb-server
+* php-Mysql
+* php-fpm
+* nginx
+Services:
+* nginx
+* php-fpm
+* mariadb
+Wordpress Download: https://wordpress.org/latest.zip
+Mysql commands:

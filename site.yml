@@ -1,0 +1,88 @@
+---
+
+- hosts: web
+  tasks:
+    - name: install epel release (Required for nginx)
+      yum:
+        name: epel-release
+        state: installed
+        update_cache: true
+
+    - name: install packages 
+      yum:
+        name: "{{ item }}"
+        state: installed
+      with_items:
+        - zip 
+        - unzip
+        - mariadb-server
+        - php-mysql
+        - php-fpm
+        - nginx
+        - MySQL-python
+
+    - name: download latest wordpress zip file
+      get_url:
+        url: https://wordpress.org/latest.zip
+        dest: /usr/share/nginx/html/
+      register: wordpressDownload
+
+    - name: uncompress downloaded zip
+      unarchive:
+        remote_src: yes
+        src: "{{ wordpressDownload.dest }}"
+        dest: /usr/share/nginx/html/
+
+    - name: template nginx configfile
+      template:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+        owner: nginx
+        group: nginx
+      notify: "restart nginx"
+
+    - name: template php-fpm config
+      template:
+        src: php-fpm.conf
+        dest: /etc/php-fpm.d/www.conf
+      notify: "restart php-fpm"
+
+    - name: template wordpress config
+      template:
+        src: wp-config.php
+        dest: /usr/share/nginx/html/wordpress/wp-config.php
+        owner: nginx
+        group: nginx
+
+    - name: enable and start service
+      systemd:
+        state: started
+        enabled: true 
+        name: "{{ item }}"
+      with_items:
+        - nginx 
+        - php-fpm
+        - mariadb
+
+    - name: create mysql database
+      mysql_db:
+        name: "{{ DB_NAME }}"
+        state: present
+
+    - name: create mysql user
+      mysql_user:
+        name: "{{ DB_USER }}"
+        password: "{{ DB_PASSWORD }}"
+        priv: "{{ DB_NAME }}.*:ALL"
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+    - name: restart php-fpm
+      service:
+        name: php-fpm
+        state: restarted
+ 
+
+
